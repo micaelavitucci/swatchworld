@@ -1,87 +1,123 @@
 <!DOCTYPE html>
-<html lang="es"> <!-- Default to Spanish, but translator will handle others -->
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SwatchWorld - Comparte Swatches de Maquillaje</title>
-    <link rel="stylesheet" href="styles.css">
-    <!-- Google Translate Widget -->
-    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    <title>Swatch World - Almacenamiento en Nube</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #swatch-container { margin: 20px 0; }
+        #swatch-container div { 
+            width: 60px; height: 60px; display: inline-block; margin: 5px; 
+            border: 2px solid #333; border-radius: 8px; color: #fff; 
+            line-height: 60px; font-size: 12px; cursor: pointer;
+        }
+        button { padding: 10px 20px; margin: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #status { color: #28a745; font-weight: bold; margin: 10px; }
+        #error { color: #dc3545; }
+    </style>
+    <!-- SDK de Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <header>
-        <h1>SwatchWorld</h1>
-        <p>¡Sube y descubre swatches de maquillaje sin registrarte! Fotos o videos, sin marcas de agua.</p>
-        
-        <!-- Google Translate Selector -->
-        <div id="google_translate_element" style="float: right;"></div>
-    </header>
+    <h1>Swatch World con Supabase (Gratis)</h1>
+    <p>Agrega colores y guárdalos en la nube. Se sincronizan al recargar.</p>
+    <div id="swatch-container"></div>
+    <br>
+    <button id="add-swatch">Agregar Swatch Aleatorio</button>
+    <button id="clear-swatches">Borrar Todos</button>
+    <div id="status">Cargando...</div>
+    <div id="error"></div>
 
-    <!-- Categories Filter -->
-    <section id="categories">
-        <h2>Categorías</h2>
-        <select id="categoryFilter">
-            <option value="all">Todas</option>
-            <option value="lipstick">Labial</option>
-            <option value="eyeshadow">Sombras</option>
-            <option value="foundation">Base</option>
-            <option value="blush">Rubor</option>
-            <option value="other">Otros</option>
-        </select>
-    </section>
-
-    <!-- Search Bar -->
-    <section id="search">
-        <input type="text" id="searchInput" placeholder="Busca por color, marca o descripción...">
-        <button onclick="searchSwatches()">Buscar</button>
-    </section>
-
-    <!-- Upload Section -->
-    <section id="upload">
-        <h2>Sube tu Swatch</h2>
-        <form id="uploadForm">
-            <input type="file" id="fileInput" accept="image/*,video/*" multiple>
-            <input type="text" id="description" placeholder="Descripción (ej: 'Rojo mate de MAC')">
-            <select id="uploadCategory">
-                <option value="lipstick">Labial</option>
-                <option value="eyeshadow">Sombras</option>
-                <option value="foundation">Base</option>
-                <option value="blush">Rubor</option>
-                <option value="other">Otros</option>
-            </select>
-            <button type="submit">Subir</button>
-        </form>
-    </section>
-
-    <!-- Swatches Gallery -->
-    <section id="gallery">
-        <h2>Galeria de Swatches</h2>
-        <div id="swatchesContainer"></div>
-    </section>
-
-    <!-- Admin Panel (Hidden by Default) -->
-    <section id="admin" style="display: none;">
-        <h2>Panel de Admin</h2>
-        <input type="password" id="adminPass" placeholder="Contraseña de Admin">
-        <button onclick="loginAdmin()">Ingresar</button>
-        <div id="adminContent">
-            <h3>Contenido Administrado</h3>
-            <ul id="adminList"></ul>
-            <button onclick="logoutAdmin()">Salir</button>
-        </div>
-    </section>
-
-    <!-- Link to Admin (Only You Know This) -->
-    <footer>
-        <p><a href="#" onclick="toggleAdmin()">Panel Admin (Solo para Ti)</a></p>
-        <p>&copy; 2023 SwatchWorld - Todos los derechos reservados a Micaela vitucci :Reganv.</p>
-    </footer>
-
-    <script src="script.js"></script>
     <script>
-        function googleTranslateElementInit() {
-            new google.translate.TranslateElement({pageLanguage: 'es', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
+        // REEMPLAZA CON TUS CREDENCIALES DE SUPABASE (de Settings > API)
+        const supabaseUrl = 'https://TU_PROJECT_REF.supabase.co';  // Ej: https://abc123.supabase.co
+        const supabaseKey = 'eyJ...TU_ANON_KEY_COMPLETA';  // La clave pública anon
+        const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+
+        const userId = 'micaelavitucci';  // Tu ID (puedes cambiarlo por un input de "usuario")
+        let swatches = [];
+
+        // Mostrar swatches
+        function displaySwatches(colors) {
+            const container = document.getElementById('swatch-container');
+            container.innerHTML = '';
+            colors.forEach((color, index) => {
+                const div = document.createElement('div');
+                div.style.backgroundColor = color;
+                div.innerText = color.substring(1).toUpperCase();  // Muestra el hex sin #
+                div.title = `Swatch ${index + 1}: ${color}`;
+                container.appendChild(div);
+            });
         }
+
+        // Cargar de la nube
+        async function loadSwatches() {
+            const status = document.getElementById('status');
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = '';  // Limpia errores previos
+
+            try {
+                status.textContent = 'Cargando desde Supabase...';
+                const { data, error } = await supabase
+                    .from('swatches')
+                    .select('colors')
+                    .eq('user_id', userId)
+                    .single();
+
+                if (error && error.code !== 'PGRST116') {  // PGRST116 = no existe, OK
+                    throw error;
+                }
+
+                swatches = data ? data.colors : [];
+                displaySwatches(swatches);
+                status.textContent = `¡Cargados ${swatches.length} swatches de la nube!`;
+            } catch (error) {
+                console.error('Error al cargar:', error);
+                errorDiv.textContent = 'Error al conectar con la nube. Usando local.';
+                swatches = [];
+                displaySwatches(swatches);
+            }
+        }
+
+        // Guardar en la nube
+        async function saveSwatches() {
+            const status = document.getElementById('status');
+            try {
+                const { error } = await supabase
+                    .from('swatches')
+                    .upsert({
+                        user_id: userId,
+                        colors: swatches,
+                        updated: new Date().toISOString()
+                    });
+
+                if (error) throw error;
+                status.textContent = '¡Guardado en la nube exitosamente!';
+            } catch (error) {
+                console.error('Error al guardar:', error);
+                document.getElementById('error').textContent = 'Error al guardar. Revisa la consola.';
+            }
+        }
+
+        // Inicializar
+        loadSwatches();
+
+        // Agregar swatch
+        document.getElementById('add-swatch').addEventListener('click', () => {
+            const newColor = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+            swatches.push(newColor);
+            displaySwatches(swatches);
+            saveSwatches();
+        });
+
+        // Borrar
+        document.getElementById('clear-swatches').addEventListener('click', () => {
+            swatches = [];
+            displaySwatches(swatches);
+            saveSwatches();
+        });
     </script>
 </body>
 </html>

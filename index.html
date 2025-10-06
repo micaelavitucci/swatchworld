@@ -89,11 +89,11 @@
     <!-- JS COMPLETO: TODO DENTRO DE 'load' PARA ESPERAR SDK -->
     <script>
         window.addEventListener('load', function() {
-            // 1. Configuración Supabase (DEFINIDA PRIMERO)
-            const supabaseUrl = 'https://bbrkgjhltcrscahjbumm.supabase.co';
-            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJicmtnamhsdGNyc2NhaGpidW1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2ODEzNTcsImV4cCI6MjA3NTI1NzM1N30.6IjXsjEXn2wD2svy4tnDCwIheFCNQqFGz1Rl-zOmc_c';
-            
-            // 2. Verificar SDK y crear cliente (USANDO 'client' PARA EVITAR CONFLICTO)
+            // 1. Configuración Supabase (REEMPLAZA CON TUS VALORES REALES DEL DASHBOARD)
+            const supabaseUrl = 'https://TU-REF-CORRECTA.supabase.co';  // ← COPIA DE SUPABASE > SETTINGS > API > PROJECT URL
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRVLVJFRi1DT1JSRUNUQSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzU5NjgxMzU3LCJleHAiOjIwNzUyNTczNTd9.EXAMPLE_KEY';  // ← COPIA DE SUPABASE > SETTINGS > API > ANON PUBLIC
+
+            // 2. Verificar SDK y crear cliente
             if (typeof supabase === 'undefined') {
                 console.error('SDK Supabase no cargó.');
                 showStatus('Error: SDK no disponible. Revisa conexión.', true);
@@ -101,7 +101,7 @@
             }
             const client = supabase.createClient(supabaseUrl, supabaseKey);
             
-            // 3. Variables globales (DESPUÉS DE CLIENTE)
+            // 3. Variables globales
             const userId = 'micaelavitucci';
             let swatches = [];
 
@@ -141,7 +141,7 @@
                 });
             }
 
-            // 7. Cargar desde Supabase (USANDO 'client')
+            // 7. Cargar desde Supabase (CON LOGS DETALLADOS PARA DEBUG)
             async function loadSwatches() {
                 showStatus('Cargando desde Supabase...');
                 try {
@@ -157,14 +157,17 @@
                     renderSwatches();
                     showStatus(`¡Cargados ${swatches.length} swatches de la nube!`);
                 } catch (error) {
-                    console.error('Error al cargar:', error);
+                    console.error('Error al cargar - Código:', error.code);
+                    console.error('Error al cargar - Mensaje:', error.message);
+                    console.error('Error al cargar - Detalles:', error.details);
+                    console.error('Error completo:', error);
                     showStatus('Error al conectar con la nube. Usando modo local.', true);
                     swatches = [];
                     renderSwatches();
                 }
             }
 
-            // 8. Guardar en Supabase (USANDO 'client')
+            // 8. Guardar en Supabase (CON LOGS DETALLADOS)
             async function saveSwatches() {
                 try {
                     const { error } = await client
@@ -174,7 +177,10 @@
                     if (error) throw error;
                     showStatus('¡Guardado en la nube exitosamente!');
                 } catch (error) {
-                    console.error('Error al guardar:', error);
+                    console.error('Error al guardar - Código:', error.code);
+                    console.error('Error al guardar - Mensaje:', error.message);
+                    console.error('Error al guardar - Detalles:', error.details);
+                    console.error('Error completo:', error);
                     showStatus('Error al guardar en la nube.', true);
                 }
             }

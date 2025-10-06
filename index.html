@@ -3,127 +3,135 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Swatch World - Almacenamiento en Nube</title>
+    <title>Swatch World - Colores en la Nube</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        #swatch-container { margin: 20px 0; }
-        #swatch-container div { 
-            width: 60px; height: 60px; display: inline-block; margin: 5px; 
-            border: 2px solid #333; border-radius: 8px; color: #fff; 
-            line-height: 60px; font-size: 12px; cursor: pointer;
-        }
-        button { padding: 10px 20px; margin: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        #swatch-container { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0; }
+        .swatch { width: 50px; height: 50px; border: 2px solid #333; border-radius: 5px; cursor: pointer; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
         button:hover { background: #0056b3; }
-        #status { color: #28a745; font-weight: bold; margin: 10px; }
-        #error { color: #dc3545; }
+        #status { margin: 10px 0; padding: 10px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px; }
+        #error { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
     </style>
-    <!-- SDK de Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
 </head>
 <body>
-    <h1>Swatch World con Supabase (Gratis)</h1>
-    <p>Agrega colores y guárdalos en la nube. Se sincronizan al recargar.</p>
-    <div id="swatch-container"></div>
-    <br>
+    <h1>🌈 Swatch World</h1>
+    <p>Genera y guarda paletas de colores en la nube con Supabase.</p>
+    
     <button id="add-swatch">Agregar Swatch Aleatorio</button>
     <button id="clear-swatches">Borrar Todos</button>
-    <div id="status">Cargando...</div>
-    <div id="error"></div>
+    
+    <div id="status"></div>
+    <div id="error" style="display: none;"></div>
+    
+    <h2>Tus Swatches:</h2>
+    <div id="swatch-container"></div>
 
+    <!-- PASO 1: Carga el SDK Supabase PRIMERO (antes de tu JS) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    
+    <!-- PASO 2: Tu código JS DESPUÉS del SDK -->
     <script>
-        // REEMPLAZA CON TUS CREDENCIALES DE SUPABASE (de Settings > API)
+        // Configuración de Supabase (REEMPLAZA CON TUS VALORES REALES)
         const supabaseUrl = 'https://bbrkgjhltcrscahjbumm.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJicmtnamhsdGNyc2NhaGpidW1uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2ODEzNTcsImV4cCI6MjA3NTI1NzM1N30.6IjXsjEXn2wD2svy4tnDCwIheFCNQqFGz1Rl-zOmc_c';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJicmtnamhsdGNyc2NhaGpidW1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2ODEzNTcsImV4cCI6MjA3NTI1NzM1N30.6IjXsjEXn2wD2svy4tnDCwIheFCNQqFGz1Rl-zOmc_c'; // Tu anon key pública
+        
+        // Crear el cliente Supabase (AHORA el global 'supabase' ya está disponible)
         const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-
-        const userId = 'micaelavitucci';  // Tu ID (puedes cambiarlo por un input de "usuario")
+        
+        const userId = 'micaelavitucci'; // Cambia por tu ID o haz input dinámico
         let swatches = [];
 
-        // Mostrar swatches
-        function displaySwatches(colors) {
+        // Función para mostrar status
+        function showStatus(message, isError = false) {
+            const status = document.getElementById('status');
+            const error = document.getElementById('error');
+            status.textContent = message;
+            status.style.display = 'block';
+            error.style.display = 'none';
+            if (isError) {
+                error.textContent = message;
+                error.style.display = 'block';
+                status.style.display = 'none';
+            }
+        }
+
+        // Función para generar color aleatorio
+        function randomColor() {
+            return '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+        }
+
+        // Función para renderizar swatches
+        function renderSwatches() {
             const container = document.getElementById('swatch-container');
             container.innerHTML = '';
-            colors.forEach((color, index) => {
-                const div = document.createElement('div');
-                div.style.backgroundColor = color;
-                div.innerText = color.substring(1).toUpperCase();  // Muestra el hex sin #
-                div.title = `Swatch ${index + 1}: ${color}`;
-                container.appendChild(div);
+            swatches.forEach(color => {
+                const swatch = document.createElement('div');
+                swatch.className = 'swatch';
+                swatch.style.backgroundColor = color;
+                swatch.title = color;
+                container.appendChild(swatch);
             });
         }
 
-        // Cargar de la nube
+        // Cargar swatches desde Supabase
         async function loadSwatches() {
-            const status = document.getElementById('status');
-            const errorDiv = document.getElementById('error');
-            errorDiv.textContent = '';  // Limpia errores previos
-
+            showStatus('Cargando desde Supabase...');
             try {
-                status.textContent = 'Cargando desde Supabase...';
                 const { data, error } = await supabase
                     .from('swatches')
                     .select('colors')
                     .eq('user_id', userId)
-                    .single();
+                    .single(); // Obtiene una sola fila por user_id
 
-                if (error && error.code !== 'PGRST116') {  // PGRST116 = no existe, OK
+                if (error && error.code !== 'PGRST116') { // PGRST116 = no existe, OK
                     throw error;
                 }
 
                 swatches = data ? data.colors : [];
-                displaySwatches(swatches);
-                status.textContent = `¡Cargados ${swatches.length} swatches de la nube!`;
+                renderSwatches();
+                showStatus(`¡Cargados ${swatches.length} swatches de la nube!`);
             } catch (error) {
                 console.error('Error al cargar:', error);
-                errorDiv.textContent = 'Error al conectar con la nube. Usando local.';
-                swatches = [];
-                displaySwatches(swatches);
+                showStatus('Error al conectar con la nube. Usando modo local.', true);
+                swatches = []; // Fallback local
+                renderSwatches();
             }
         }
 
-        // Guardar en la nube
+        // Guardar swatches en Supabase
         async function saveSwatches() {
-            const status = document.getElementById('status');
             try {
                 const { error } = await supabase
                     .from('swatches')
-                    .upsert({
-                        user_id: userId,
-                        colors: swatches,
-                        updated: new Date().toISOString()
-                    });
+                    .upsert({ user_id: userId, colors: swatches, updated: new Date().toISOString() })
+                    .eq('user_id', userId);
 
                 if (error) throw error;
-                status.textContent = '¡Guardado en la nube exitosamente!';
+                showStatus('¡Guardado en la nube exitosamente!');
             } catch (error) {
                 console.error('Error al guardar:', error);
-                document.getElementById('error').textContent = 'Error al guardar. Revisa la consola.';
+                showStatus('Error al guardar en la nube.', true);
             }
         }
 
-        // Inicializar
-        loadSwatches();
-
-        // Agregar swatch
+        // Evento: Agregar swatch
         document.getElementById('add-swatch').addEventListener('click', () => {
-            const newColor = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
-            swatches.push(newColor);
-            displaySwatches(swatches);
+            const color = randomColor();
+            swatches.push(color);
+            renderSwatches();
             saveSwatches();
         });
 
-        // Borrar
+        // Evento: Borrar todos
         document.getElementById('clear-swatches').addEventListener('click', () => {
             swatches = [];
-            displaySwatches(swatches);
+            renderSwatches();
             saveSwatches();
         });
+
+        // Inicializar al cargar la página
+        window.addEventListener('load', loadSwatches);
     </script>
 </body>
 </html>
-
-
-
-
-
-

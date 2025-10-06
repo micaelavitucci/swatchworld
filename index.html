@@ -5,44 +5,100 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Swatch World - Colores en la Nube</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
-        #swatch-container { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0; }
-        .swatch { width: 50px; height: 50px; border: 2px solid #333; border-radius: 5px; cursor: pointer; }
-        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background: #f5f5f5; 
+            color: #333;
+        }
+        h1 { color: #007bff; text-align: center; }
+        h2 { color: #28a745; }
+        #swatch-container { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 10px; 
+            margin: 20px 0; 
+            min-height: 60px; /* Para que se vea incluso vacío */
+            border: 1px dashed #ccc; 
+            padding: 10px; 
+            border-radius: 5px;
+            background: white;
+        }
+        .swatch { 
+            width: 50px; 
+            height: 50px; 
+            border: 2px solid #333; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            transition: transform 0.2s;
+        }
+        .swatch:hover { transform: scale(1.1); }
+        button { 
+            padding: 10px 20px; 
+            margin: 5px; 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 16px;
+        }
         button:hover { background: #0056b3; }
-        #status { margin: 10px 0; padding: 10px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px; }
-        #error { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        button:active { background: #004085; }
+        #status { 
+            margin: 10px 0; 
+            padding: 10px; 
+            background: #d4edda; 
+            border: 1px solid #c3e6cb; 
+            border-radius: 5px; 
+            color: #155724;
+            display: none; /* Se muestra con JS */
+        }
+        #error { 
+            background: #f8d7da; 
+            border: 1px solid #f5c6cb; 
+            color: #721c24; 
+            margin: 10px 0; 
+            padding: 10px; 
+            border-radius: 5px;
+            display: none;
+        }
+        p { line-height: 1.5; }
     </style>
 </head>
 <body>
     <h1>🌈 Swatch World</h1>
     <p>Genera y guarda paletas de colores en la nube con Supabase.</p>
     
-    <button id="add-swatch">Agregar Swatch Aleatorio</button>
-    <button id="clear-swatches">Borrar Todos</button>
+    <div>
+        <button id="add-swatch">Agregar Swatch Aleatorio</button>
+        <button id="clear-swatches">Borrar Todos</button>
+    </div>
     
     <div id="status"></div>
-    <div id="error" style="display: none;"></div>
+    <div id="error"></div>
     
     <h2>Tus Swatches:</h2>
-    <div id="swatch-container"></div>
+    <div id="swatch-container">Aún no hay swatches. ¡Agrega uno!</div>
 
-    <!-- PASO 1: Carga el SDK Supabase PRIMERO (antes de tu JS) -->
+    <!-- SDK Supabase PRIMERO -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     
-    <!-- PASO 2: Tu código JS DESPUÉS del SDK -->
+    <!-- Tu JS DESPUÉS -->
     <script>
-        // Configuración de Supabase (REEMPLAZA CON TUS VALORES REALES)
+        // Configuración Supabase (REEMPLAZA CON TUS VALORES)
         const supabaseUrl = 'https://bbrkgjhltcrscahjbumm.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJicmtnamhsdGNyc2NhaGpidW1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2ODEzNTcsImV4cCI6MjA3NTI1NzM1N30.6IjXsjEXn2wD2svy4tnDCwIheFCNQqFGz1Rl-zOmc_c'; // Tu anon key pública
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJicmtnamhsdGNyc2NhaGpidW1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2ODEzNTcsImV4cCI6MjA3NTI1NzM1N30.6IjXsjEXn2wD2svy4tnDCwIheFCNQqFGz1Rl-zOmc_c';
         
-        // Crear el cliente Supabase (AHORA el global 'supabase' ya está disponible)
+        // Crear cliente
         const supabase = supabase.createClient(supabaseUrl, supabaseKey);
         
-        const userId = 'micaelavitucci'; // Cambia por tu ID o haz input dinámico
+        const userId = 'micaelavitucci';
         let swatches = [];
 
-        // Función para mostrar status
+        // Mostrar status
         function showStatus(message, isError = false) {
             const status = document.getElementById('status');
             const error = document.getElementById('error');
@@ -56,15 +112,19 @@
             }
         }
 
-        // Función para generar color aleatorio
+        // Color aleatorio
         function randomColor() {
-            return '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+            return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
         }
 
-        // Función para renderizar swatches
+        // Renderizar swatches
         function renderSwatches() {
             const container = document.getElementById('swatch-container');
             container.innerHTML = '';
+            if (swatches.length === 0) {
+                container.innerHTML = 'Aún no hay swatches. ¡Agrega uno!';
+                return;
+            }
             swatches.forEach(color => {
                 const swatch = document.createElement('div');
                 swatch.className = 'swatch';
@@ -74,7 +134,7 @@
             });
         }
 
-        // Cargar swatches desde Supabase
+        // Cargar desde Supabase
         async function loadSwatches() {
             showStatus('Cargando desde Supabase...');
             try {
@@ -82,11 +142,9 @@
                     .from('swatches')
                     .select('colors')
                     .eq('user_id', userId)
-                    .single(); // Obtiene una sola fila por user_id
+                    .single();
 
-                if (error && error.code !== 'PGRST116') { // PGRST116 = no existe, OK
-                    throw error;
-                }
+                if (error && error.code !== 'PGRST116') throw error;
 
                 swatches = data ? data.colors : [];
                 renderSwatches();
@@ -94,18 +152,17 @@
             } catch (error) {
                 console.error('Error al cargar:', error);
                 showStatus('Error al conectar con la nube. Usando modo local.', true);
-                swatches = []; // Fallback local
+                swatches = [];
                 renderSwatches();
             }
         }
 
-        // Guardar swatches en Supabase
+        // Guardar en Supabase
         async function saveSwatches() {
             try {
                 const { error } = await supabase
                     .from('swatches')
-                    .upsert({ user_id: userId, colors: swatches, updated: new Date().toISOString() })
-                    .eq('user_id', userId);
+                    .upsert({ user_id: userId, colors: swatches, updated: new Date().toISOString() });
 
                 if (error) throw error;
                 showStatus('¡Guardado en la nube exitosamente!');
@@ -115,7 +172,7 @@
             }
         }
 
-        // Evento: Agregar swatch
+        // Eventos
         document.getElementById('add-swatch').addEventListener('click', () => {
             const color = randomColor();
             swatches.push(color);
@@ -123,15 +180,16 @@
             saveSwatches();
         });
 
-        // Evento: Borrar todos
         document.getElementById('clear-swatches').addEventListener('click', () => {
             swatches = [];
             renderSwatches();
             saveSwatches();
         });
 
-        // Inicializar al cargar la página
-        window.addEventListener('load', loadSwatches);
+        // Inicializar
+        window.addEventListener('load', () => {
+            loadSwatches();
+        });
     </script>
 </body>
 </html>

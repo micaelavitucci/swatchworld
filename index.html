@@ -20,7 +20,7 @@
             flex-wrap: wrap; 
             gap: 10px; 
             margin: 20px 0; 
-            min-height: 60px; /* Para que se vea incluso vacío */
+            min-height: 60px; 
             border: 1px dashed #ccc; 
             padding: 10px; 
             border-radius: 5px;
@@ -54,7 +54,7 @@
             border: 1px solid #c3e6cb; 
             border-radius: 5px; 
             color: #155724;
-            display: none; /* Se muestra con JS */
+            display: none;
         }
         #error { 
             background: #f8d7da; 
@@ -86,108 +86,114 @@
     <!-- SDK Supabase PRIMERO -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     
-    <!-- Tu JS DESPUÉS -->
+    <!-- JS COMPLETO: TODO DENTRO DE 'load' PARA ESPERAR SDK -->
     <script>
-        // Configuración Supabase (REEMPLAZA CON TUS VALORES)
-        const supabaseUrl = 'https://bbrkgjhltcrscahjbumm.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJicmtnamhsdGNyc2NhaGpidW1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2ODEzNTcsImV4cCI6MjA3NTI1NzM1N30.6IjXsjEXn2wD2svy4tnDCwIheFCNQqFGz1Rl-zOmc_c';
-        
-        // Crear cliente
-        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-        
-        const userId = 'micaelavitucci';
-        let swatches = [];
-
-        // Mostrar status
-        function showStatus(message, isError = false) {
-            const status = document.getElementById('status');
-            const error = document.getElementById('error');
-            status.textContent = message;
-            status.style.display = 'block';
-            error.style.display = 'none';
-            if (isError) {
-                error.textContent = message;
-                error.style.display = 'block';
-                status.style.display = 'none';
-            }
-        }
-
-        // Color aleatorio
-        function randomColor() {
-            return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
-        }
-
-        // Renderizar swatches
-        function renderSwatches() {
-            const container = document.getElementById('swatch-container');
-            container.innerHTML = '';
-            if (swatches.length === 0) {
-                container.innerHTML = 'Aún no hay swatches. ¡Agrega uno!';
+        window.addEventListener('load', function() {
+            // 1. Configuración Supabase (DEFINIDA PRIMERO)
+            const supabaseUrl = 'https://bbrkgjhltcrscahjbumm.supabase.co';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJicmtnamhsdGNyc2NhaGpidW1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2ODEzNTcsImV4cCI6MjA3NTI1NzM1N30.6IjXsjEXn2wD2svy4tnDCwIheFCNQqFGz1Rl-zOmc_c';
+            
+            // 2. Verificar SDK y crear cliente (USANDO 'client' PARA EVITAR CONFLICTO)
+            if (typeof supabase === 'undefined') {
+                console.error('SDK Supabase no cargó.');
+                showStatus('Error: SDK no disponible. Revisa conexión.', true);
                 return;
             }
-            swatches.forEach(color => {
-                const swatch = document.createElement('div');
-                swatch.className = 'swatch';
-                swatch.style.backgroundColor = color;
-                swatch.title = color;
-                container.appendChild(swatch);
-            });
-        }
+            const client = supabase.createClient(supabaseUrl, supabaseKey);
+            
+            // 3. Variables globales (DESPUÉS DE CLIENTE)
+            const userId = 'micaelavitucci';
+            let swatches = [];
 
-        // Cargar desde Supabase
-        async function loadSwatches() {
-            showStatus('Cargando desde Supabase...');
-            try {
-                const { data, error } = await supabase
-                    .from('swatches')
-                    .select('colors')
-                    .eq('user_id', userId)
-                    .single();
+            // 4. Función para status
+            function showStatus(message, isError = false) {
+                const status = document.getElementById('status');
+                const error = document.getElementById('error');
+                status.textContent = message;
+                status.style.display = 'block';
+                error.style.display = 'none';
+                if (isError) {
+                    error.textContent = message;
+                    error.style.display = 'block';
+                    status.style.display = 'none';
+                }
+            }
 
-                if (error && error.code !== 'PGRST116') throw error;
+            // 5. Color aleatorio
+            function randomColor() {
+                return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+            }
 
-                swatches = data ? data.colors : [];
+            // 6. Renderizar swatches
+            function renderSwatches() {
+                const container = document.getElementById('swatch-container');
+                container.innerHTML = '';
+                if (swatches.length === 0) {
+                    container.innerHTML = 'Aún no hay swatches. ¡Agrega uno!';
+                    return;
+                }
+                swatches.forEach(color => {
+                    const swatch = document.createElement('div');
+                    swatch.className = 'swatch';
+                    swatch.style.backgroundColor = color;
+                    swatch.title = color;
+                    container.appendChild(swatch);
+                });
+            }
+
+            // 7. Cargar desde Supabase (USANDO 'client')
+            async function loadSwatches() {
+                showStatus('Cargando desde Supabase...');
+                try {
+                    const { data, error } = await client
+                        .from('swatches')
+                        .select('colors')
+                        .eq('user_id', userId)
+                        .single();
+
+                    if (error && error.code !== 'PGRST116') throw error;
+
+                    swatches = data ? data.colors : [];
+                    renderSwatches();
+                    showStatus(`¡Cargados ${swatches.length} swatches de la nube!`);
+                } catch (error) {
+                    console.error('Error al cargar:', error);
+                    showStatus('Error al conectar con la nube. Usando modo local.', true);
+                    swatches = [];
+                    renderSwatches();
+                }
+            }
+
+            // 8. Guardar en Supabase (USANDO 'client')
+            async function saveSwatches() {
+                try {
+                    const { error } = await client
+                        .from('swatches')
+                        .upsert({ user_id: userId, colors: swatches, updated: new Date().toISOString() });
+
+                    if (error) throw error;
+                    showStatus('¡Guardado en la nube exitosamente!');
+                } catch (error) {
+                    console.error('Error al guardar:', error);
+                    showStatus('Error al guardar en la nube.', true);
+                }
+            }
+
+            // 9. Eventos de botones
+            document.getElementById('add-swatch').addEventListener('click', () => {
+                const color = randomColor();
+                swatches.push(color);
                 renderSwatches();
-                showStatus(`¡Cargados ${swatches.length} swatches de la nube!`);
-            } catch (error) {
-                console.error('Error al cargar:', error);
-                showStatus('Error al conectar con la nube. Usando modo local.', true);
+                saveSwatches();
+            });
+
+            document.getElementById('clear-swatches').addEventListener('click', () => {
                 swatches = [];
                 renderSwatches();
-            }
-        }
+                saveSwatches();
+            });
 
-        // Guardar en Supabase
-        async function saveSwatches() {
-            try {
-                const { error } = await supabase
-                    .from('swatches')
-                    .upsert({ user_id: userId, colors: swatches, updated: new Date().toISOString() });
-
-                if (error) throw error;
-                showStatus('¡Guardado en la nube exitosamente!');
-            } catch (error) {
-                console.error('Error al guardar:', error);
-                showStatus('Error al guardar en la nube.', true);
-            }
-        }
-
-        // Eventos
-        document.getElementById('add-swatch').addEventListener('click', () => {
-            const color = randomColor();
-            swatches.push(color);
-            renderSwatches();
-            saveSwatches();
-        });
-
-        document.getElementById('clear-swatches').addEventListener('click', () => {
-            swatches = [];
-            renderSwatches();
-            saveSwatches();
-        });
-
-        // Inicializar
-        window.addEventListener('load', () => {
+            // 10. Inicializar: Carga al final
             loadSwatches();
         });
     </script>

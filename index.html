@@ -88,122 +88,79 @@
     
     <!-- JS COMPLETO: TODO DENTRO DE 'load' PARA ESPERAR SDK -->
     <script>
-        window.addEventListener('load', function() {
-            // 1. Configuración Supabase (REEMPLAZA CON TUS VALORES REALES DEL DASHBOARD)
-            const supabaseUrl = 'https://bbrkgjhltcrscahjbumn.supabase.co';  // ← COPIA DE SUPABASE > SETTINGS > API > PROJECT URL
-            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJicmtnamhsdGNyc2NhaGpidW1uIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1OTY4MTM1NywiZXhwIjoyMDc1MjU3MzU3fQ.PAzFNwV4K0cfjNl3cFpx30tGpkY0o6OXdxysy38eMVo';  // ← COPIA DE SUPABASE > SETTINGS > API > ANON PUBLIC
+        <!-- Asegura que el SDK esté en <head> o antes: -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> -->
 
-            // 2. Verificar SDK y crear cliente
-            if (typeof supabase === 'undefined') {
-                console.error('SDK Supabase no cargó.');
-                showStatus('Error: SDK no disponible. Revisa conexión.', true);
-                return;
-            }
-            const client = supabase.createClient(supabaseUrl, supabaseKey);
-            
-            // 3. Variables globales
-            const userId = 'micaelavitucci';
-            let swatches = [];
+<!-- JS COMPLETO: TODO DENTRO DE 'load' PARA ESPERAR SDK -->
+<script>
+    window.addEventListener('load', function() {
+        // 1. Configuración Supabase (CORREGIDO: ANON KEY PÚBLICA, NO SERVICE_ROLE)
+        const supabaseUrl = 'https://bbrkgjhltcrscahjbumn.supabase.co';  // ← De SUPABASE > SETTINGS > API > PROJECT URL
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJicmtnamhsdGNyc2NhaGpidW1uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2ODEzNTcsImV4cCI6MjA3NTI1NzM1N30.6IjXsjEXn2wD2svy4tnDCwIheFCNQqFGz1Rl-zOmc_c';  // ← ANON PUBLIC (NO SERVICE_ROLE!)
 
-            // 4. Función para status
-            function showStatus(message, isError = false) {
-                const status = document.getElementById('status');
-                const error = document.getElementById('error');
-                status.textContent = message;
-                status.style.display = 'block';
-                error.style.display = 'none';
-                if (isError) {
-                    error.textContent = message;
-                    error.style.display = 'block';
-                    status.style.display = 'none';
-                }
-            }
+        // 2. Verificar SDK y crear cliente (CORREGIDO: SINTAXIS V2)
+        if (typeof supabase === 'undefined') {
+            console.error('SDK Supabase no cargó.');
+            showStatus('Error: SDK no disponible. Revisa conexión.', true);
+            return;
+        }
+        const { createClient } = supabase;  // ← DESESTRUCTURACIÓN PARA V2
+        const client = createClient(supabaseUrl, supabaseKey);
+        
+        console.log('Cliente Supabase inicializado con key anon:', supabaseKey.substring(0, 20) + '...');  // ← DEBUG: Confirma key cargada
 
-            // 5. Color aleatorio
-            function randomColor() {
-                return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
-            }
+        // 3. Variables globales
+        const userId = 'micaelavitucci';
+        let swatches = [];
 
-            // 6. Renderizar swatches
-            function renderSwatches() {
-                const container = document.getElementById('swatch-container');
-                container.innerHTML = '';
-                if (swatches.length === 0) {
-                    container.innerHTML = 'Aún no hay swatches. ¡Agrega uno!';
-                    return;
-                }
-                swatches.forEach(color => {
-                    const swatch = document.createElement('div');
-                    swatch.className = 'swatch';
-                    swatch.style.backgroundColor = color;
-                    swatch.title = color;
-                    container.appendChild(swatch);
-                });
-            }
-
-            // 7. Cargar desde Supabase (CON LOGS DETALLADOS PARA DEBUG)
-            async function loadSwatches() {
-                showStatus('Cargando desde Supabase...');
-                try {
-                    const { data, error } = await client
-                        .from('swatches')
-                        .select('colors')
-                        .eq('user_id', userId)
-                        .single();
-
-                    if (error && error.code !== 'PGRST116') throw error;
-
-                    swatches = data ? data.colors : [];
-                    renderSwatches();
-                    showStatus(`¡Cargados ${swatches.length} swatches de la nube!`);
-                } catch (error) {
-                    console.error('Error al cargar - Código:', error.code);
-                    console.error('Error al cargar - Mensaje:', error.message);
-                    console.error('Error al cargar - Detalles:', error.details);
-                    console.error('Error completo:', error);
-                    showStatus('Error al conectar con la nube. Usando modo local.', true);
-                    swatches = [];
-                    renderSwatches();
-                }
-            }
-
-            // 8. Guardar en Supabase (CON LOGS DETALLADOS)
-            async function saveSwatches() {
-                try {
-                    const { error } = await client
-                        .from('swatches')
-                        .upsert({ user_id: userId, colors: swatches, updated: new Date().toISOString() });
-
-                    if (error) throw error;
-                    showStatus('¡Guardado en la nube exitosamente!');
-                } catch (error) {
-                    console.error('Error al guardar - Código:', error.code);
-                    console.error('Error al guardar - Mensaje:', error.message);
-                    console.error('Error al guardar - Detalles:', error.details);
-                    console.error('Error completo:', error);
-                    showStatus('Error al guardar en la nube.', true);
-                }
-            }
-
-            // 9. Eventos de botones
-            document.getElementById('add-swatch').addEventListener('click', () => {
-                const color = randomColor();
-                swatches.push(color);
+        // 4. Función para cargar swatches (ejemplo si no la tienes; ajusta si existe)
+        async function loadSwatches() {
+            console.log('Cargando desde Supabase...');
+            try {
+                const { data, error } = await client
+                    .from('swatches')
+                    .select('colors')
+                    .eq('user_id', userId)
+                    .single();
+                if (error) throw error;
+                swatches = data ? data.colors || [] : [];
+                console.log('¡Cargados', swatches.length, 'swatches de la nube!', swatches);
+                renderSwatches();  // ← Llama a tu función de render
+                showStatus('¡Cargados desde la nube!', false);
+            } catch (error) {
+                console.error('Error al conectar:', error.message || error);
+                swatches = [];  // Fallback local
                 renderSwatches();
-                saveSwatches();
-            });
+                showStatus('Modo local (error conexión).', true);
+            }
+        }
 
-            document.getElementById('clear-swatches').addEventListener('click', () => {
-                swatches = [];
-                renderSwatches();
-                saveSwatches();
-            });
+        // 5. Función para guardar swatches (ejemplo si no la tienes)
+        async function saveSwatches() {
+            console.log('Guardando en Supabase...');
+            try {
+                const { error } = await client
+                    .from('swatches')
+                    .upsert({ user_id: userId, colors: swatches }, { onConflict: 'user_id' });
+                if (error) throw error;
+                console.log('¡Guardado en la nube exitosamente!');
+                showStatus('¡Guardado en la nube!', false);
+            } catch (error) {
+                console.error('Error al guardar:', error.message || error);
+                showStatus('Error al guardar. Intenta de nuevo.', true);
+            }
+        }
 
-            // 10. Inicializar: Carga al final
-            loadSwatches();
-        });
-    </script>
+        // 6. Inicializar al cargar (llama loadSwatches al inicio)
+        loadSwatches();  // ← Carga automática al abrir la app
+
+        // 7. Ejemplos de eventos (ajusta a tus botones: ej. onclick="saveSwatches()")
+        // Para botón "Generar Swatch": Agrega lógica para push a swatches + saveSwatches()
+        // Para "Borrar Todos": swatches = []; renderSwatches(); saveSwatches();
+    });
+</script>        
 </body>
 </html>
+
 
 
